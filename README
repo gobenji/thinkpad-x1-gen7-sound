@@ -1,0 +1,34 @@
+Patches to improve the behavior of the audio system on the Lenovo Thinkpad X1
+Carbon 7th gen. These should also be applicable to the X1 Yoga 4th gen.
+
+I've tested the patches under Debian Unstable, over a 5.6.13 kernel with the
+rest of the instructions provided here:
+https://gist.github.com/hamidzr/dd81e429dc86f4327ded7a2030e7d7d9#gistcomment-3204561
+
+Improvements compared to the mainline driver:
+* max sound output level is raised
+  See the analysis here:
+  https://gist.github.com/hamidzr/dd81e429dc86f4327ded7a2030e7d7d9#gistcomment-3214171
+* independent control of output level on the two sets of speakers (front/back
+  aka. tweeters/woofers)
+
+Issues:
+* There is some slight "pop" in headphones when content volume transitions
+  to/from 0. This is especially easy to notice with voice content where there
+  are pauses of silence. For example, I can hear it when listening to the
+  first 15s of this video: https://youtu.be/DmtpQZVzm1A
+
+  Also present on mainline.
+* When unplugging the headphones, pulseaudio does not automatically switch the
+  "Port" of the output device back to "Speakers".
+
+  Also present on mainline.
+
+It might be possible to fix the port switching issue and to get rid of patch
+"Rename some controls for the benefit of pulseaudio" by tweaking the
+pulseaudio configuration of profile/paths. See the log of that patch for more
+info.
+
+If you try the patches, please send me a mail to let me know of your results.
+You can also open an issue here or post a comment in the above gist which has
+become a forum for audio issues with the X1 Carbon 7th gen.

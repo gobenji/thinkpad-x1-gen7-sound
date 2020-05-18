@@ -1,0 +1,64 @@
+From ddfc7731d352fb1d519d1472c3902324e143efb5 Mon Sep 17 00:00:00 2001
+From: Benjamin Poirier <bpoirier@cumulusnetworks.com>
+Date: Mon, 18 May 2020 16:26:48 +0900
+Subject: [PATCH 3/3] Rename some controls for the benefit of pulseaudio
+
+Controls are renamed from
+	control.23 'Headphone Playback Volume'
+	control.24 'Headphone Playback Switch'
+	control.25 'Speaker Playback Volume'
+	control.26 'Speaker Playback Switch'
+	control.27 'Bass Speaker Playback Switch'
+to
+	control.23 'Bass Speaker Playback Volume' <==
+	control.24 'Headphone Playback Switch'
+	control.25 'Front Playback Volume' <==
+	control.26 'Speaker Playback Switch'
+	control.27 'Bass Speaker Playback Switch'
+
+This greatly improves the behavior of pulseaudio at a small cost in the
+look of alsamixer. See comments in the code for full explanation of each
+rename.
+
+I feel like instead of this patch, this could be fixed in the pulseaudio
+configuration of profiles/paths but I haven't managed to do so thus far.
+
+See
+https://www.freedesktop.org/wiki/Software/PulseAudio/Backends/ALSA/Profiles/
+/usr/share/pulseaudio/alsa-mixer/paths/analog-output.conf.common
+---
+ sound/pci/hda/patch_realtek.c | 18 ++++++++++++++++++
+ 1 file changed, 18 insertions(+)
+
+diff --git a/sound/pci/hda/patch_realtek.c b/sound/pci/hda/patch_realtek.c
+index 6b82dd9d480e..23850fad1591 100644
+--- a/sound/pci/hda/patch_realtek.c
++++ b/sound/pci/hda/patch_realtek.c
+@@ -5702,6 +5702,24 @@ static void alc295_fixup_tpx17_dual_speakers(struct hda_codec *codec,
+ 				    0x1);
+ 		snd_hda_codec_write(codec, 0x21, 0, AC_VERB_SET_CONNECT_SEL,
+ 				    0x1);
++	} else if (action == HDA_FIXUP_ACT_BUILD) {
++		/* With the default name, PA uses this mixer to control volume
++		 * when outputting to headphones. When switching back to
++		 * speaker output, PA does not restore the mixer back to its
++		 * former value, which affects the volume of the bass speaker.
++		 * By changing the name, PA uses the Master mixer instead for
++		 * volume control when outputting to headphones.
++		 */
++		rename_ctl(codec, "Headphone Playback Volume",
++			   "Bass Speaker Playback Volume");
++		/* With the default name, PA uses only this mixer to control
++		 * volume when outputting to speakers. This is ineffective;
++		 * rear speaker volume must be controlled as well. By changing
++		 * the name, PA uses the Master mixer instead for volume
++		 * control when outputting to speakers.
++		 */
++		rename_ctl(codec, "Speaker Playback Volume",
++			   "Front Playback Volume");
+ 	}
+ }
+ 
+-- 
+2.26.2
+
