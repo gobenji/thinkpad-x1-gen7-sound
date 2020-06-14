@@ -1,0 +1,88 @@
+From bce99015e9ef943fafd1323e5e5a08d0f9893ea5 Mon Sep 17 00:00:00 2001
+From: Benjamin Poirier <benjamin.poirier@gmail.com>
+Date: Sun, 14 Jun 2020 17:44:48 +0900
+Subject: [PATCH] sof-hda-dsp: Use Master mixer to control volume with dual
+ stereo speakers
+
+The Lenovo ThinkPad X1 Carbon 7th is a laptop with two sets of stereo
+speakers driven from a single stereo output. The volume of each set of
+speakers can be controlled independently through two separate mixers. In
+that case, one of those mixers serves a dual purpose: it also controls
+headphone volume.
+
+With the current ucm profile, when outputting to speakers, pulseaudio uses
+only the mixer for the front speakers to control volume. This is
+ineffective; rear speaker volume must be controlled as well. In order to
+control both sets of speakers at once, indicate that the Master mixer
+should be used.
+
+Moreover, when switching between speaker and headphone outputs, the level
+of the dual purpose mixer should be restored. Since this kind of constraint
+cannot be described with ucm, indicate that the Master mixer should be used
+to control volume instead when outputting to headphones.
+
+This patch depends on a modification to the snd_hda_codec_realtek kernel
+driver used on that system to rename one of the controls.
+
+Signed-off-by: Benjamin Poirier <benjamin.poirier@gmail.com>
+---
+ ucm2/sof-hda-dsp/HiFi.conf | 32 ++++++++++++++++++++++++++++----
+ 1 file changed, 28 insertions(+), 4 deletions(-)
+
+diff --git a/ucm2/sof-hda-dsp/HiFi.conf b/ucm2/sof-hda-dsp/HiFi.conf
+index eea6ed9..27ce04a 100644
+--- a/ucm2/sof-hda-dsp/HiFi.conf
++++ b/ucm2/sof-hda-dsp/HiFi.conf
+@@ -28,10 +28,22 @@ SectionDevice."Headphones" {
+ 	Value {
+ 		PlaybackPriority 200
+ 		PlaybackPCM "hw:${CardId}"
+-		PlaybackMixerElem "Headphone"
+ 		PlaybackMasterElem "Master"
+-		PlaybackVolume "Headphone Playback Volume"
+ 		PlaybackSwitch "Headphone Playback Switch"
++		If.hpmixer {
++			Condition {
++				Type ControlExists
++				Control "name='Headphone/Bass Speaker Playback Volume'"
++			}
++			True {
++				PlaybackMixerElem "Master"
++				PlaybackVolume "Master Playback Volume"
++			}
++			False {
++				PlaybackMixerElem "Headphone"
++				PlaybackVolume "Headphone Playback Volume"
++			}
++		}
+ 		If.jack {
+ 			Condition {
+ 				Type ControlExists
+@@ -80,10 +92,22 @@ SectionDevice."Speaker" {
+ 	Value {
+ 		PlaybackPriority 100
+ 		PlaybackPCM "hw:${CardId}"
+-		PlaybackMixerElem "Speaker"
+ 		PlaybackMasterElem "Master"
+-		PlaybackVolume "Speaker Playback Volume"
+ 		PlaybackSwitch "Speaker Playback Switch"
++		If.spkmixer {
++			Condition {
++				Type ControlExists
++				Control "name='Headphone/Bass Speaker Playback Volume'"
++			}
++			True {
++				PlaybackMixerElem "Master"
++				PlaybackVolume "Master Playback Volume"
++			}
++			False {
++				PlaybackMixerElem "Speaker"
++				PlaybackVolume "Speaker Playback Volume"
++			}
++		}
+ 	}
+ }
+ 
+-- 
+2.27.0.rc2
+

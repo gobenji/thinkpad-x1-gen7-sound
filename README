@@ -1,9 +1,13 @@
 Patches to improve the behavior of the audio system on the Lenovo Thinkpad X1
 Carbon 7th gen. These should also be applicable to the X1 Yoga 4th gen.
 
-I've tested the patches under Debian Unstable with a self-compiled kernel and
-the rest of the instructions provided here:
+I've tested the patches under Debian Unstable with a self-compiled kernel,
+patched alsa ucm profile and the rest of the instructions provided here:
 https://gist.github.com/hamidzr/dd81e429dc86f4327ded7a2030e7d7d9#gistcomment-3204561
+
+Both the kernel driver (snd_hda_codec_realtek) and the alsa ucm profile must
+be patched. On Debian, the ucm file to patch is found under
+/usr/share/alsa/ucm2/sof-hda-dsp/
 
 Improvements compared to the mainline driver:
 * max sound output level is raised
@@ -23,10 +27,6 @@ Issues:
   "Port" of the output device back to "Speakers".
 
   Also present on mainline.
-
-It might be possible to fix the port switching issue and to get rid of patch
-"Rename some controls for the benefit of pulseaudio" by tweaking the
-UCM profile for the card. See the log of that patch for more info.
 
 If you try the patches, please send me a mail to let me know of your results.
 You can also open an issue here or post a comment in the above gist which has
