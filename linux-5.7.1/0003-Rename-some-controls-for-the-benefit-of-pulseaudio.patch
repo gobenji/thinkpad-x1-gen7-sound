@@ -1,5 +1,5 @@
-From ddfc7731d352fb1d519d1472c3902324e143efb5 Mon Sep 17 00:00:00 2001
-From: Benjamin Poirier <bpoirier@cumulusnetworks.com>
+From 2f2327b2e47fa26a1aa582878c212b881cc51b6a Mon Sep 17 00:00:00 2001
+From: Benjamin Poirier <benjamin.poirier@gmail.com>
 Date: Mon, 18 May 2020 16:26:48 +0900
 Subject: [PATCH 3/3] Rename some controls for the benefit of pulseaudio
 
@@ -20,21 +20,18 @@ This greatly improves the behavior of pulseaudio at a small cost in the
 look of alsamixer. See comments in the code for full explanation of each
 rename.
 
-I feel like instead of this patch, this could be fixed in the pulseaudio
-configuration of profiles/paths but I haven't managed to do so thus far.
-
-See
-https://www.freedesktop.org/wiki/Software/PulseAudio/Backends/ALSA/Profiles/
-/usr/share/pulseaudio/alsa-mixer/paths/analog-output.conf.common
+I think that instead of this patch, this could be fixed in the alsa ucm
+profile, see
+https://gist.github.com/hamidzr/dd81e429dc86f4327ded7a2030e7d7d9#gistcomment-3335517
 ---
  sound/pci/hda/patch_realtek.c | 18 ++++++++++++++++++
  1 file changed, 18 insertions(+)
 
 diff --git a/sound/pci/hda/patch_realtek.c b/sound/pci/hda/patch_realtek.c
-index 6b82dd9d480e..23850fad1591 100644
+index 4ba40c673a3b..873a82fc771b 100644
 --- a/sound/pci/hda/patch_realtek.c
 +++ b/sound/pci/hda/patch_realtek.c
-@@ -5702,6 +5702,24 @@ static void alc295_fixup_tpx17_dual_speakers(struct hda_codec *codec,
+@@ -5834,6 +5834,24 @@ static void alc295_fixup_tpx17_dual_speakers(struct hda_codec *codec,
  				    0x1);
  		snd_hda_codec_write(codec, 0x21, 0, AC_VERB_SET_CONNECT_SEL,
  				    0x1);
@@ -60,5 +57,5 @@ index 6b82dd9d480e..23850fad1591 100644
  }
  
 -- 
-2.26.2
+2.27.0.rc2
 
