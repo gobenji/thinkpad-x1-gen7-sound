@@ -1,4 +1,4 @@
-From 00445df64fb0c31407fa1e26ef73ef5b7e22e4e5 Mon Sep 17 00:00:00 2001
+From 4decb646e4eae617803563ac02dbf3862baedf7a Mon Sep 17 00:00:00 2001
 From: Benjamin Poirier <benjamin.poirier@gmail.com>
 Date: Wed, 29 Apr 2020 09:47:53 +0900
 Subject: [PATCH 2/2] ALSA: hda/realtek - Replace Lenovo Thinkpad X1 Carbon 7th
@@ -32,15 +32,15 @@ speakers. Each set of speakers gets its own volume control and the max
 output volume is restored to what it was before commit d2cd795c4ece. This
 is done by setting the connection of node 0x17 to 0x03.
 
-However, when we do this, it automatically changes the connection of node
-0x21 to 0x02. This output, meant for the front speakers, has some "secret
-sauce" equalizer which changes the output volume according to the level of
-what's being played, after some delay. This is undesirable with headphones.
-Therefore, this patch manually restores the connection of node 0x21 to
-0x03.
+However, when we do this, the HDA auto config automatically changes the
+connection of node 0x21 to 0x02. This output, meant for the front speakers,
+has some "secret sauce" equalizer which changes the output volume according
+to the level of what's being played, after some delay[3]. This is
+undesirable with headphones. Therefore, this patch manually limits the
+connection of node 0x21 to 0x03.
 
 The volume control for PCM-OUT2 is renamed to reflect its dual effect.
-This name is also used in a modified alsa UCM profile.
+This name is also used in a modified alsa UCM profile. [4]
 
 It is possible that the X1 Carbon 8th gen would benefit from the same
 changes but I don't have a device to test that. Quirks are reordered so
@@ -53,6 +53,8 @@ ALC269_FIXUP_SKU_IGNORE
 
 [1] https://gist.github.com/hamidzr/dd81e429dc86f4327ded7a2030e7d7d9#gistcomment-3214171
 [2] https://bugzilla.kernel.org/show_bug.cgi?id=207407#c10
+[3] https://gist.github.com/hamidzr/dd81e429dc86f4327ded7a2030e7d7d9#gistcomment-3276276
+[4] xx
 
 Fixes: d2cd795c4ece ("ALSA: hda - fixup for the bass speaker on Lenovo Carbon X1 7th gen")
 Link: https://lore.kernel.org/alsa-devel/20200210025249.GA2700@f3/
@@ -64,10 +66,10 @@ Signed-off-by: Benjamin Poirier <benjamin.poirier@gmail.com>
  1 file changed, 52 insertions(+), 4 deletions(-)
 
 diff --git a/sound/pci/hda/patch_realtek.c b/sound/pci/hda/patch_realtek.c
-index 3c32cb7c136d..4f73aac2ef9e 100644
+index b7c88a77769b..effe5ee6267d 100644
 --- a/sound/pci/hda/patch_realtek.c
 +++ b/sound/pci/hda/patch_realtek.c
-@@ -5800,6 +5800,46 @@ static void alc285_fixup_speaker2_to_dac1(struct hda_codec *codec,
+@@ -5801,6 +5801,46 @@ static void alc285_fixup_speaker2_to_dac1(struct hda_codec *codec,
  	}
  }
  
@@ -114,7 +116,7 @@ index 3c32cb7c136d..4f73aac2ef9e 100644
  /* Hook to update amp GPIO4 for automute */
  static void alc280_hp_gpio4_automute_hook(struct hda_codec *codec,
  					  struct hda_jack_callback *jack)
-@@ -6051,6 +6091,7 @@ enum {
+@@ -6053,6 +6093,7 @@ enum {
  	ALC225_FIXUP_DISABLE_MIC_VREF,
  	ALC225_FIXUP_DELL1_MIC_NO_PRESENCE,
  	ALC295_FIXUP_DISABLE_DAC3,
@@ -122,7 +124,7 @@ index 3c32cb7c136d..4f73aac2ef9e 100644
  	ALC285_FIXUP_SPEAKER2_TO_DAC1,
  	ALC280_FIXUP_HP_HEADSET_MIC,
  	ALC221_FIXUP_HP_FRONT_MIC,
-@@ -6860,11 +6901,17 @@ static const struct hda_fixup alc269_fixups[] = {
+@@ -6862,11 +6903,17 @@ static const struct hda_fixup alc269_fixups[] = {
  		.type = HDA_FIXUP_FUNC,
  		.v.func = alc295_fixup_disable_dac3,
  	},
@@ -141,7 +143,7 @@ index 3c32cb7c136d..4f73aac2ef9e 100644
  	},
  	[ALC256_FIXUP_DELL_INSPIRON_7559_SUBWOOFER] = {
  		.type = HDA_FIXUP_PINS,
-@@ -7237,7 +7284,7 @@ static const struct hda_fixup alc269_fixups[] = {
+@@ -7239,7 +7286,7 @@ static const struct hda_fixup alc269_fixups[] = {
  		.type = HDA_FIXUP_FUNC,
  		.v.func = alc_fixup_headset_jack,
  		.chained = true,
@@ -150,7 +152,7 @@ index 3c32cb7c136d..4f73aac2ef9e 100644
  	},
  	[ALC294_FIXUP_ASUS_HPE] = {
  		.type = HDA_FIXUP_VERBS,
-@@ -7531,8 +7578,8 @@ static const struct snd_pci_quirk alc269_fixup_tbl[] = {
+@@ -7533,8 +7580,8 @@ static const struct snd_pci_quirk alc269_fixup_tbl[] = {
  	SND_PCI_QUIRK(0x17aa, 0x224c, "Thinkpad", ALC298_FIXUP_TPT470_DOCK),
  	SND_PCI_QUIRK(0x17aa, 0x224d, "Thinkpad", ALC298_FIXUP_TPT470_DOCK),
  	SND_PCI_QUIRK(0x17aa, 0x225d, "Thinkpad T480", ALC269_FIXUP_LIMIT_INT_MIC_BOOST),
@@ -161,7 +163,7 @@ index 3c32cb7c136d..4f73aac2ef9e 100644
  	SND_PCI_QUIRK(0x17aa, 0x30bb, "ThinkCentre AIO", ALC233_FIXUP_LENOVO_LINE2_MIC_HOTKEY),
  	SND_PCI_QUIRK(0x17aa, 0x30e2, "ThinkCentre AIO", ALC233_FIXUP_LENOVO_LINE2_MIC_HOTKEY),
  	SND_PCI_QUIRK(0x17aa, 0x310c, "ThinkCentre Station", ALC294_FIXUP_LENOVO_MIC_LOCATION),
-@@ -7718,6 +7765,7 @@ static const struct hda_model_fixup alc269_fixup_models[] = {
+@@ -7720,6 +7767,7 @@ static const struct hda_model_fixup alc269_fixup_models[] = {
  	{.id = ALC255_FIXUP_DELL_SPK_NOISE, .name = "dell-spk-noise"},
  	{.id = ALC225_FIXUP_DELL1_MIC_NO_PRESENCE, .name = "alc225-dell1"},
  	{.id = ALC295_FIXUP_DISABLE_DAC3, .name = "alc295-disable-dac3"},
