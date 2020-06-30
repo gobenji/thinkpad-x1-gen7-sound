@@ -23,10 +23,6 @@ Issues:
   first 15s of this video: https://youtu.be/DmtpQZVzm1A
 
   Also present on mainline.
-* When unplugging the headphones, pulseaudio does not automatically switch the
-  "Port" of the output device back to "Speakers".
-
-  Also present on mainline.
 
 If you try the patches, please send me a mail to let me know of your results.
 You can also open an issue here or post a comment in the above gist which has
