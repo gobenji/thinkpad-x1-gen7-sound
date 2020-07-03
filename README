@@ -9,6 +9,12 @@ Both the kernel driver (snd_hda_codec_realtek) and the alsa ucm profile must
 be patched. On Debian, the ucm file to patch is found under
 /usr/share/alsa/ucm2/sof-hda-dsp/
 
+Note that the ucm patch is over alsa-ucm-conf commit 38e5906cd1b1
+("sof-hda-dsp: fix the device order (Hdmi devices)"). At the moment
+(alsa-ucm-conf git head ffe0cab5cfce ("sof-hda-dsp: use
+sof-hda-dsp/Hdmi.conf")), newer versions do not work for me (with or without
+the changes in this repository).
+
 Improvements compared to the mainline driver:
 * max sound output level is raised
   See the analysis here:

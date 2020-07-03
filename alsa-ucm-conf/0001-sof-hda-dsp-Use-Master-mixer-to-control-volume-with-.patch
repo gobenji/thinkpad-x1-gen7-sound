@@ -1,4 +1,4 @@
-From bce99015e9ef943fafd1323e5e5a08d0f9893ea5 Mon Sep 17 00:00:00 2001
+From 551461961c0ec673f0968d4891c1532eff8edac5 Mon Sep 17 00:00:00 2001
 From: Benjamin Poirier <benjamin.poirier@gmail.com>
 Date: Sun, 14 Jun 2020 17:44:48 +0900
 Subject: [PATCH] sof-hda-dsp: Use Master mixer to control volume with dual
@@ -30,10 +30,10 @@ Signed-off-by: Benjamin Poirier <benjamin.poirier@gmail.com>
  1 file changed, 28 insertions(+), 4 deletions(-)
 
 diff --git a/ucm2/sof-hda-dsp/HiFi.conf b/ucm2/sof-hda-dsp/HiFi.conf
-index eea6ed9..27ce04a 100644
+index 62358e2..661a086 100644
 --- a/ucm2/sof-hda-dsp/HiFi.conf
 +++ b/ucm2/sof-hda-dsp/HiFi.conf
-@@ -28,10 +28,22 @@ SectionDevice."Headphones" {
+@@ -25,10 +25,22 @@ SectionDevice."Headphones" {
  	Value {
  		PlaybackPriority 200
  		PlaybackPCM "hw:${CardId}"
@@ -58,7 +58,7 @@ index eea6ed9..27ce04a 100644
  		If.jack {
  			Condition {
  				Type ControlExists
-@@ -80,10 +92,22 @@ SectionDevice."Speaker" {
+@@ -77,10 +89,22 @@ SectionDevice."Speaker" {
  	Value {
  		PlaybackPriority 100
  		PlaybackPCM "hw:${CardId}"
@@ -84,5 +84,5 @@ index eea6ed9..27ce04a 100644
  }
  
 -- 
-2.27.0.rc2
+2.27.0
 
