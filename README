@@ -19,7 +19,7 @@ Issues:
 
 # How to use
 I've tested the patches under Debian Unstable with a self-compiled kernel,
-patched alsa ucm profile and the rest of [these
+patched alsa ucm profile and the rest (steps 2, 3, 4) of [these
 instructions](https://gist.github.com/hamidzr/dd81e429dc86f4327ded7a2030e7d7d9#gistcomment-3204561).
 
 Both the kernel driver (snd_hda_codec_realtek) and the alsa ucm profile must
@@ -53,3 +53,22 @@ To make the effect persistent, two changes must be done:
    [here](https://gist.github.com/hamidzr/dd81e429dc86f4327ded7a2030e7d7d9#gistcomment-3335517)
    The patch is slightly different than the one contained in this repository
    because there is no renamed control to key off of.
+
+# How to check that the fix has been applied correctly
+To check that the kernel changes/hda-verb command are effective, run
+```
+root@f3:~# hda-verb /dev/snd/hwC0D0 0x17 GET_CONNECT_SEL 0
+nid = 0x17, verb = 0xf01, param = 0x0
+value = 0x1
+```
+Critically, "value" should be "0x1".
+
+To check that the ucm profile changes are effective, start alsamixer on the X1
+audio device in one terminal:
+```ben@f3:~$ alsamixer -c sofhdadsp```
+At the same time, run `pavucontrol`. In the "Output Devices" tab, locate the
+"Cannon Point-LP High Definition Audio Controller Speaker + Headphones"
+section, select the "Speaker" port and adjust the volume to different values
+0-100 while looking at alsamixer. In alsamixer, you should see the level of
+the "Master" mixer changing. Change the port to "Headphones" and repeat the
+same test.
