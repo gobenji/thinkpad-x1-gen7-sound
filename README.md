@@ -40,22 +40,24 @@ become a forum for audio issues with the X1 Carbon 7th gen.
 Instead of patching the kernel, it is possible to use the `hda-verb` utility
 (available from the "alsa-tools" package on Debian) to achieve a similar
 effect. This can be done temporarily by running:
-```hda-verb /dev/snd/hwC0D0 0x17 SET_CONNECT_SEL 1```
+```
+hda-verb /dev/snd/hwC0D0 0x17 SET_CONNECT_SEL 1
+```
 
 To make the effect persistent, two changes must be done:
 1. The fixup must be applied each time the device is initialized, ie. at boot
    and after resume from S3 suspend AFAIK. A sample systemd service file to do
    so has been posted
-   [here](https://gist.github.com/hamidzr/dd81e429dc86f4327ded7a2030e7d7d9#gistcomment-3345062)
+   [here](https://gist.github.com/hamidzr/dd81e429dc86f4327ded7a2030e7d7d9#gistcomment-3345062).
 2. In order to have effective volume control, pulseaudio must use the "Master"
    volume slider. To do so, the relevant ucm profile must be changed according
    to the patch found
-   [here](https://gist.github.com/hamidzr/dd81e429dc86f4327ded7a2030e7d7d9#gistcomment-3335517)
+   [here](https://gist.github.com/hamidzr/dd81e429dc86f4327ded7a2030e7d7d9#gistcomment-3335517).
    The patch is slightly different than the one contained in this repository
    because there is no renamed control to key off of.
 
 # How to check that the fix has been applied correctly
-To check that the kernel changes/hda-verb command are effective, run
+To check that the kernel changes or hda-verb command are effective, run
 ```
 root@f3:~# hda-verb /dev/snd/hwC0D0 0x17 GET_CONNECT_SEL 0
 nid = 0x17, verb = 0xf01, param = 0x0
@@ -64,11 +66,9 @@ value = 0x1
 Critically, "value" should be "0x1".
 
 To check that the ucm profile changes are effective, start alsamixer on the X1
-audio device in one terminal:
-```ben@f3:~$ alsamixer -c sofhdadsp```
-At the same time, run `pavucontrol`. In the "Output Devices" tab, locate the
-"Cannon Point-LP High Definition Audio Controller Speaker + Headphones"
-section, select the "Speaker" port and adjust the volume to different values
-0-100 while looking at alsamixer. In alsamixer, you should see the level of
-the "Master" mixer changing. Change the port to "Headphones" and repeat the
-same test.
+audio device in one terminal, `alsamixer -c sofhdadsp`. At the same time, run
+`pavucontrol`. In the "Output Devices" tab, locate the "Cannon Point-LP High
+Definition Audio Controller Speaker + Headphones" section, select the "Speaker"
+port and adjust the volume to different values within 0-100% while looking at
+alsamixer. In alsamixer, you should see the level of the "Master" mixer
+changing. Change the port to "Headphones" and repeat the same test.
