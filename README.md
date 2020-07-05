@@ -17,9 +17,10 @@ Issues:
 
   Also present on mainline.
 
-# How to use
-I've tested the patches under Debian Unstable with a self-compiled kernel,
-patched alsa ucm profile and the rest (steps 2, 3, 4) of [these
+# Alternative 1 - Kernel Patching
+I've tested the patches in this repository under Debian Unstable with a
+self-compiled kernel, patched alsa ucm profile and the rest (steps 2, 3, 4) of
+[these
 instructions](https://gist.github.com/hamidzr/dd81e429dc86f4327ded7a2030e7d7d9#gistcomment-3204561).
 
 Both the kernel driver (snd_hda_codec_realtek) and the alsa ucm profile must
@@ -36,7 +37,7 @@ If you try the patches, please send me a mail to let me know of your results.
 You can also open an issue here or post a comment in the above gist which has
 become a forum for audio issues with the X1 Carbon 7th gen.
 
-# Userspace alternative
+# Alternative 2 - Runtime Reconfiguration
 Instead of patching the kernel, it is possible to use the `hda-verb` utility
 (available from the "alsa-tools" package on Debian) to achieve a similar
 effect. This can be done temporarily by running:
