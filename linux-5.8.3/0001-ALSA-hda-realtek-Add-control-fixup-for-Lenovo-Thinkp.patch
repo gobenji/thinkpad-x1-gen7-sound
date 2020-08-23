@@ -1,4 +1,4 @@
-From 2ce47d6c453304837a2d806c2a5953669ec13b60 Mon Sep 17 00:00:00 2001
+From 6305386d756f5da75dbe6ecc8fdef9662ed17298 Mon Sep 17 00:00:00 2001
 From: Benjamin Poirier <benjamin.poirier@gmail.com>
 Date: Fri, 14 Aug 2020 11:45:41 +0900
 Subject: [PATCH] ALSA: hda/realtek - Add control fixup for Lenovo Thinkpad X1
@@ -81,14 +81,79 @@ Cc: Jaroslav Kysela <perex@perex.cz>
 Cc: Kailang Yang <kailang@realtek.com>
 Signed-off-by: Benjamin Poirier <benjamin.poirier@gmail.com>
 ---
- sound/pci/hda/patch_realtek.c | 346 +++++++++++++++++++++++++++++++++-
- 1 file changed, 342 insertions(+), 4 deletions(-)
+
+Notes:
+    This is an updated version of the patchset (now a single patch) to fix the
+    low output volume on the Lenovo ThinkPad X1 Carbon 7th gen. With this
+    patch, the volume output with the Linux driver matches the one with the
+    Windows driver. Volume control is effective and headphone output is
+    unaffected.
+    
+    Multiple users of this machine have reported a low output volume [1] when
+    using a kernel with commit d2cd795c4ece ("ALSA: hda - fixup for the bass
+    speaker on Lenovo Carbon X1 7th gen"). Many have tried these patches or a
+    similar workaround using `hda-verb` and prefer this configuration[2].
+    
+    [1]
+    https://gist.github.com/hamidzr/dd81e429dc86f4327ded7a2030e7d7d9#gistcomment-3227516
+    https://gist.github.com/hamidzr/dd81e429dc86f4327ded7a2030e7d7d9#gistcomment-3240090
+    https://gist.github.com/hamidzr/dd81e429dc86f4327ded7a2030e7d7d9#gistcomment-3296637
+    https://gist.github.com/hamidzr/dd81e429dc86f4327ded7a2030e7d7d9#gistcomment-3304699
+    https://gist.github.com/hamidzr/dd81e429dc86f4327ded7a2030e7d7d9#gistcomment-3343871
+    https://gist.github.com/hamidzr/dd81e429dc86f4327ded7a2030e7d7d9#gistcomment-3349803
+    https://gist.github.com/hamidzr/dd81e429dc86f4327ded7a2030e7d7d9#gistcomment-3361380
+    ...
+    
+    [2]
+    https://gist.github.com/hamidzr/dd81e429dc86f4327ded7a2030e7d7d9#gistcomment-3343252
+    https://gist.github.com/hamidzr/dd81e429dc86f4327ded7a2030e7d7d9#gistcomment-3344118
+    https://gist.github.com/hamidzr/dd81e429dc86f4327ded7a2030e7d7d9#gistcomment-3345062
+    https://gist.github.com/hamidzr/dd81e429dc86f4327ded7a2030e7d7d9#gistcomment-3345107
+    ...
+    
+    Changes:
+    
+    v1
+    ==
+    https://lore.kernel.org/alsa-devel/20200211055651.4405-1-benjamin.poirier@gmail.com/
+    
+    v2
+    ==
+    https://lore.kernel.org/alsa-devel/20200703080005.8942-1-benjamin.poirier@gmail.com/
+    * patch 1
+    Shortened log
+    
+    * patch 2
+    Change log to replace experimental observations by information from diagram
+    posted on kernel.org bugzilla.
+    Select exactly the desired connection for node 0x17 (bass speakers) instead of
+    reusing alc295_fixup_disable_dac3().
+    Control node 0x21 (headphones) connection to avoid the volume "wobble"
+    effect described in the log.
+    Include SET_CONNECT_SEL command in fixup since it is not done by the hda
+    core.
+    Rename one control to reflect its new function and to use as a condition in
+    the ucm config.
+    
+    v3
+    ==
+    * Remove patch 1 which was merged separately as commit 9774dc218bb6
+      ("ALSA: hda/realtek - Fix Lenovo Thinkpad X1 Carbon 7th quirk
+      subdevice id")
+    * Make fixup activation manual using "alc285-tpx1-dual-speakers" model
+      instead of automatic based on codec id. Suggested by Jaroslav.
+    * Control both tweeter and woofer volume from "Speaker Playback Volume"
+      control. This way a separate ucm change is not needed, unlike in v2 of
+      the patchset. Suggested by Jaroslav.
+
+ sound/pci/hda/patch_realtek.c | 355 +++++++++++++++++++++++++++++++++-
+ 1 file changed, 351 insertions(+), 4 deletions(-)
 
 diff --git a/sound/pci/hda/patch_realtek.c b/sound/pci/hda/patch_realtek.c
-index 417c8e17d839..6a9d6b0b4e4c 100644
+index 8626e59f1e6a..7fc061ddb574 100644
 --- a/sound/pci/hda/patch_realtek.c
 +++ b/sound/pci/hda/patch_realtek.c
-@@ -5837,6 +5837,329 @@ static void alc285_fixup_speaker2_to_dac1(struct hda_codec *codec,
+@@ -5833,6 +5833,338 @@ static void alc285_fixup_speaker2_to_dac1(struct hda_codec *codec,
  	}
  }
  
@@ -332,9 +397,10 @@ index 417c8e17d839..6a9d6b0b4e4c 100644
 +					    const struct hda_fixup *fix,
 +					    int action)
 +{
++	struct alc_spec *spec = codec->spec;
++
 +	if (action == HDA_FIXUP_ACT_PRE_PROBE) {
 +		static const hda_nid_t conn[] = { 0x03 };
-+		struct alc_spec *spec = codec->spec;
 +
 +		/* For NID 0x17 (bass speakers), the connection list is {0x02,
 +		 * 0x03, 0x06}. Disable SP-OUT PCM (0x06) selection since it
@@ -402,15 +468,23 @@ index 417c8e17d839..6a9d6b0b4e4c 100644
 +			return;
 +		}
 +
-+		err = snd_hda_add_vmaster(
++		err = __snd_hda_add_vmaster(
 +			codec, "Master Playback Switch", NULL,
 +			((const char * const[]){
 +				"Speaker", "Bass Speaker", "Headphone", NULL
-+			}), "Playback Switch");
++			}), "Playback Switch", true,
++			&spec->gen.vmaster_mute.sw_kctl);
 +		if (err) {
 +			codec_warn(codec, "Failed to create main mute control, err %d\n",
 +				   err);
 +			return;
++		}
++
++		if (spec->gen.vmaster_mute.hook) {
++			snd_hda_add_vmaster_hook(codec,
++						 &spec->gen.vmaster_mute,
++						 spec->gen.vmaster_mute_enum);
++			snd_hda_sync_vmaster_hook(&spec->gen.vmaster_mute);
 +		}
 +	}
 +}
@@ -418,7 +492,7 @@ index 417c8e17d839..6a9d6b0b4e4c 100644
  /* Hook to update amp GPIO4 for automute */
  static void alc280_hp_gpio4_automute_hook(struct hda_codec *codec,
  					  struct hda_jack_callback *jack)
-@@ -6099,6 +6422,7 @@ enum {
+@@ -6095,6 +6427,7 @@ enum {
  	ALC225_FIXUP_DISABLE_MIC_VREF,
  	ALC225_FIXUP_DELL1_MIC_NO_PRESENCE,
  	ALC295_FIXUP_DISABLE_DAC3,
@@ -426,7 +500,7 @@ index 417c8e17d839..6a9d6b0b4e4c 100644
  	ALC285_FIXUP_SPEAKER2_TO_DAC1,
  	ALC280_FIXUP_HP_HEADSET_MIC,
  	ALC221_FIXUP_HP_FRONT_MIC,
-@@ -6151,7 +6475,8 @@ enum {
+@@ -6147,7 +6480,8 @@ enum {
  	ALC289_FIXUP_DUAL_SPK,
  	ALC294_FIXUP_SPK2_TO_DAC1,
  	ALC294_FIXUP_ASUS_DUAL_SPK,
@@ -436,7 +510,7 @@ index 417c8e17d839..6a9d6b0b4e4c 100644
  	ALC294_FIXUP_ASUS_HPE,
  	ALC294_FIXUP_ASUS_COEF_1B,
  	ALC285_FIXUP_HP_GPIO_LED,
-@@ -6920,6 +7245,12 @@ static const struct hda_fixup alc269_fixups[] = {
+@@ -6916,6 +7250,12 @@ static const struct hda_fixup alc269_fixups[] = {
  		.type = HDA_FIXUP_FUNC,
  		.v.func = alc295_fixup_disable_dac3,
  	},
@@ -449,7 +523,7 @@ index 417c8e17d839..6a9d6b0b4e4c 100644
  	[ALC285_FIXUP_SPEAKER2_TO_DAC1] = {
  		.type = HDA_FIXUP_FUNC,
  		.v.func = alc285_fixup_speaker2_to_dac1,
-@@ -7295,12 +7626,18 @@ static const struct hda_fixup alc269_fixups[] = {
+@@ -7291,12 +7631,18 @@ static const struct hda_fixup alc269_fixups[] = {
  		.chained = true,
  		.chain_id = ALC294_FIXUP_SPK2_TO_DAC1
  	},
@@ -469,7 +543,7 @@ index 417c8e17d839..6a9d6b0b4e4c 100644
  	[ALC294_FIXUP_ASUS_HPE] = {
  		.type = HDA_FIXUP_VERBS,
  		.v.verbs = (const struct hda_verb[]) {
-@@ -7745,8 +8082,8 @@ static const struct snd_pci_quirk alc269_fixup_tbl[] = {
+@@ -7741,8 +8087,8 @@ static const struct snd_pci_quirk alc269_fixup_tbl[] = {
  	SND_PCI_QUIRK(0x17aa, 0x224c, "Thinkpad", ALC298_FIXUP_TPT470_DOCK),
  	SND_PCI_QUIRK(0x17aa, 0x224d, "Thinkpad", ALC298_FIXUP_TPT470_DOCK),
  	SND_PCI_QUIRK(0x17aa, 0x225d, "Thinkpad T480", ALC269_FIXUP_LIMIT_INT_MIC_BOOST),
@@ -480,7 +554,7 @@ index 417c8e17d839..6a9d6b0b4e4c 100644
  	SND_PCI_QUIRK(0x17aa, 0x30bb, "ThinkCentre AIO", ALC233_FIXUP_LENOVO_LINE2_MIC_HOTKEY),
  	SND_PCI_QUIRK(0x17aa, 0x30e2, "ThinkCentre AIO", ALC233_FIXUP_LENOVO_LINE2_MIC_HOTKEY),
  	SND_PCI_QUIRK(0x17aa, 0x310c, "ThinkCentre Station", ALC294_FIXUP_LENOVO_MIC_LOCATION),
-@@ -7937,6 +8274,7 @@ static const struct hda_model_fixup alc269_fixup_models[] = {
+@@ -7933,6 +8279,7 @@ static const struct hda_model_fixup alc269_fixup_models[] = {
  	{.id = ALC255_FIXUP_DELL_SPK_NOISE, .name = "dell-spk-noise"},
  	{.id = ALC225_FIXUP_DELL1_MIC_NO_PRESENCE, .name = "alc225-dell1"},
  	{.id = ALC295_FIXUP_DISABLE_DAC3, .name = "alc295-disable-dac3"},
