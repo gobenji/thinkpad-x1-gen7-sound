@@ -3,9 +3,12 @@
 This repository used to contain patches to improve the behavior of the audio
 system on the Lenovo Thinkpad X1 Carbon 7th gen.
 
-These patches have been obsoleted by the following upstream commits:
+These patches have been obsoleted by the following upstream Linux kernel
+commits:
+```
 9774dc218bb6 ALSA: hda/realtek - Fix Lenovo Thinkpad X1 Carbon 7th quirk subdevice id (v5.8-rc5)
 6a6660d049f8 ALSA: hda/realtek - Improved routing for Thinkpad X1 7th/8th Gen (v5.9-rc4)
+```
 
 If you would like, you can browse the history of this repository to view the
 former patches.
