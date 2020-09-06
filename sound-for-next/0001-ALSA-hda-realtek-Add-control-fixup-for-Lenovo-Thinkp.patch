@@ -1,4 +1,4 @@
-From 6305386d756f5da75dbe6ecc8fdef9662ed17298 Mon Sep 17 00:00:00 2001
+From ba53e78d6c25bb848420181abc539354b2308338 Mon Sep 17 00:00:00 2001
 From: Benjamin Poirier <benjamin.poirier@gmail.com>
 Date: Fri, 14 Aug 2020 11:45:41 +0900
 Subject: [PATCH] ALSA: hda/realtek - Add control fixup for Lenovo Thinkpad X1
@@ -28,9 +28,8 @@ the two sets of speakers under one effective volume control but also
 lowering the output volume noticeably.
 
 Fix this by connecting PCM-OUT1 to Front speakers and PCM-OUT2 to Rear
-speakers. Each set of speakers gets its own volume control and the max
-output volume is restored to what it was before commit d2cd795c4ece. This
-is done by setting the connection of node 0x17 to 0x03.
+speakers. The max output volume is restored to what it was before commit
+d2cd795c4ece. This is done by setting the connection of node 0x17 to 0x03.
 
 However, when we do this, the HDA auto config automatically changes the
 connection of node 0x21 to 0x02. This output, meant for the front speakers,
@@ -42,11 +41,12 @@ node 0x21 to 0x03.
 Even though there are three speaker/line outputs (nodes 0x14, 0x17, 0x21),
 there are only two amps for volume control (nodes 0x02, 0x03). When setting
 node 0x17 to connection 0x03 and node 0x21 to connection 0x03, amp 0x03 is
-shared by the Woofer and Headphone outputs. This patch uses the Speaker
-control element to regulate nodes 0x02 (acts on tweeters) and 0x03 (acts on
-woofers and headphones). A virtual control element is created for the
-Headphone mixer which mirrors the Speaker mixer. These changes are only for
-volume controls; there are 3 hardware mute controls.
+shared by the Woofer and Headphone outputs. Therefore, they cannot have
+independent volume control. This patch uses the Speaker control element to
+regulate nodes 0x02 (acts on tweeters) and 0x03 (acts on woofers and
+headphones). A virtual control element is created for the Headphone mixer
+which mirrors the Speaker mixer. These changes are only for volume
+controls; there are 3 hardware mute controls.
 
 The current fixup chain applied to this machine is
 ALC285_FIXUP_THINKPAD_HEADSET_JACK
@@ -65,7 +65,7 @@ snd_intel_dspcfg.dsp_driver module parameter).
 
 In order to be able to apply ALC285_FIXUP_THINKPAD_HEADSET_JACK without
 changing current behavior, a new variant of that fixup is introduced. When
-using this patch, the fixup chain is:
+using the model added by this patch, the fixup chain is:
 ALC285_FIXUP_TPX1_DUAL_SPEAKERS
 ALC285_FIXUP_THINKPAD_HEADSET_JACK_ACPI
 ALC269_FIXUP_THINKPAD_ACPI
@@ -79,6 +79,8 @@ Fixes: d2cd795c4ece ("ALSA: hda - fixup for the bass speaker on Lenovo Carbon X1
 Link: https://lore.kernel.org/alsa-devel/20200210025249.GA2700@f3/
 Cc: Jaroslav Kysela <perex@perex.cz>
 Cc: Kailang Yang <kailang@realtek.com>
+Tested-by: Even Brenden <evenbrenden@gmail.com>
+Tested-by: Vincent Bernat <vincent@bernat.ch>
 Signed-off-by: Benjamin Poirier <benjamin.poirier@gmail.com>
 ---
 
@@ -150,10 +152,10 @@ Notes:
  1 file changed, 351 insertions(+), 4 deletions(-)
 
 diff --git a/sound/pci/hda/patch_realtek.c b/sound/pci/hda/patch_realtek.c
-index 8626e59f1e6a..7fc061ddb574 100644
+index a1fa983d2a94..8012c4aaf282 100644
 --- a/sound/pci/hda/patch_realtek.c
 +++ b/sound/pci/hda/patch_realtek.c
-@@ -5833,6 +5833,338 @@ static void alc285_fixup_speaker2_to_dac1(struct hda_codec *codec,
+@@ -5821,6 +5821,338 @@ static void alc285_fixup_speaker2_to_dac1(struct hda_codec *codec,
  	}
  }
  
@@ -335,7 +337,7 @@ index 8626e59f1e6a..7fc061ddb574 100644
 +}
 +
 +/* We cannot use snd_hda_add_vmaster() because it expects the controls to be
-+ * HDA (see init_slave_0dB()). This is not the case here.
++ * HDA (see init_follower_0dB()). This is not the case here.
 + */
 +static int tpx1_dual_create_main_volume_ctl(struct hda_codec *codec)
 +{
@@ -356,7 +358,7 @@ index 8626e59f1e6a..7fc061ddb574 100644
 +	err = snd_hda_ctl_add(codec, 0, main_vol);
 +	if (err < 0)
 +		return err;
-+	err = snd_ctl_add_slave(main_vol, speaker_vol);
++	err = snd_ctl_add_follower(main_vol, speaker_vol);
 +	if (err < 0)
 +		return err;
 +
@@ -492,7 +494,7 @@ index 8626e59f1e6a..7fc061ddb574 100644
  /* Hook to update amp GPIO4 for automute */
  static void alc280_hp_gpio4_automute_hook(struct hda_codec *codec,
  					  struct hda_jack_callback *jack)
-@@ -6095,6 +6427,7 @@ enum {
+@@ -6083,6 +6415,7 @@ enum {
  	ALC225_FIXUP_DISABLE_MIC_VREF,
  	ALC225_FIXUP_DELL1_MIC_NO_PRESENCE,
  	ALC295_FIXUP_DISABLE_DAC3,
@@ -500,7 +502,7 @@ index 8626e59f1e6a..7fc061ddb574 100644
  	ALC285_FIXUP_SPEAKER2_TO_DAC1,
  	ALC280_FIXUP_HP_HEADSET_MIC,
  	ALC221_FIXUP_HP_FRONT_MIC,
-@@ -6147,7 +6480,8 @@ enum {
+@@ -6135,7 +6468,8 @@ enum {
  	ALC289_FIXUP_DUAL_SPK,
  	ALC294_FIXUP_SPK2_TO_DAC1,
  	ALC294_FIXUP_ASUS_DUAL_SPK,
@@ -510,7 +512,7 @@ index 8626e59f1e6a..7fc061ddb574 100644
  	ALC294_FIXUP_ASUS_HPE,
  	ALC294_FIXUP_ASUS_COEF_1B,
  	ALC285_FIXUP_HP_GPIO_LED,
-@@ -6916,6 +7250,12 @@ static const struct hda_fixup alc269_fixups[] = {
+@@ -6905,6 +7239,12 @@ static const struct hda_fixup alc269_fixups[] = {
  		.type = HDA_FIXUP_FUNC,
  		.v.func = alc295_fixup_disable_dac3,
  	},
@@ -523,7 +525,7 @@ index 8626e59f1e6a..7fc061ddb574 100644
  	[ALC285_FIXUP_SPEAKER2_TO_DAC1] = {
  		.type = HDA_FIXUP_FUNC,
  		.v.func = alc285_fixup_speaker2_to_dac1,
-@@ -7291,12 +7631,18 @@ static const struct hda_fixup alc269_fixups[] = {
+@@ -7280,12 +7620,18 @@ static const struct hda_fixup alc269_fixups[] = {
  		.chained = true,
  		.chain_id = ALC294_FIXUP_SPK2_TO_DAC1
  	},
@@ -554,7 +556,7 @@ index 8626e59f1e6a..7fc061ddb574 100644
  	SND_PCI_QUIRK(0x17aa, 0x30bb, "ThinkCentre AIO", ALC233_FIXUP_LENOVO_LINE2_MIC_HOTKEY),
  	SND_PCI_QUIRK(0x17aa, 0x30e2, "ThinkCentre AIO", ALC233_FIXUP_LENOVO_LINE2_MIC_HOTKEY),
  	SND_PCI_QUIRK(0x17aa, 0x310c, "ThinkCentre Station", ALC294_FIXUP_LENOVO_MIC_LOCATION),
-@@ -7933,6 +8279,7 @@ static const struct hda_model_fixup alc269_fixup_models[] = {
+@@ -7934,6 +8280,7 @@ static const struct hda_model_fixup alc269_fixup_models[] = {
  	{.id = ALC255_FIXUP_DELL_SPK_NOISE, .name = "dell-spk-noise"},
  	{.id = ALC225_FIXUP_DELL1_MIC_NO_PRESENCE, .name = "alc225-dell1"},
  	{.id = ALC295_FIXUP_DISABLE_DAC3, .name = "alc295-disable-dac3"},
